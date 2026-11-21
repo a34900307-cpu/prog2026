@@ -1,32 +1,58 @@
 import re
 
+VOWELS = "аеєиіїоуюя"
+
+# Навчальний словник слів із варіантами у-/в-
+PAIRS = {
+    "учитель": "вчитель",
+    "вчитель": "учитель",
+    "учитися": "вчитися",
+    "вчитися": "учитися",
+    "учень": "вчень",  # не є нормативною парою
+}
+
+# Прибираємо ненормативну пару
+PAIRS.pop("учень")
+
 def check_prefixes(text):
     if not isinstance(text, str) or not text.strip():
-        raise ValueError("Введіть текст для перевірки.")
+        raise ValueError("Введіть український текст.")
 
-    # Навчальний набір слів з можливим чергуванням у-/в-
-    pairs = {
-        "вчитель": "учитель",
-        "учитель": "вчитель",
-        "вчитися": "учитися",
-        "учитися": "вчитися",
-        "вправа": "управа",
-        "управа": "вправа",
-    }
+    words = list(re.finditer(
+        r"[А-Яа-яІіЇїЄєҐґ]+", text
+    ))
 
     results = []
 
-    for match in re.finditer(r"[А-Яа-яІіЇїЄєҐґ]+", text):
+    for i, match in enumerate(words):
         word = match.group()
-        alternative = pairs.get(word.lower())
+        lower = word.lower()
 
-        if alternative:
+        if lower not in PAIRS:
+            continue
+
+        alternative = PAIRS[lower]
+
+        if i == 0:
+            continue
+
+        previous = words[i - 1].group()
+        last = previous[-1].lower()
+
+        # Спрощена рекомендація за милозвучністю
+        preferred = "в" if last in VOWELS else "у"
+
+        if lower[0] != preferred:
+            suggestion = alternative
+
+            if word[0].isupper():
+                suggestion = suggestion.capitalize()
+
             results.append({
                 "word": word,
-                "alternative": alternative,
-                "position": match.start()
+                "alternative": suggestion,
+                "position": match.start(),
+                "reason": "Рекомендація за звуковим оточенням."
             })
 
     return results
-
-print("Модуль перевірки варіантів у-/в- створено.")
